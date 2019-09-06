@@ -1,0 +1,351 @@
+<html>
+
+<head>
+    <meta charset='utf-8' />
+    <title>Opportunity Zones</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.2.1/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.2.1/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        #menu {
+            background: #fff;
+            position: relative;
+            z-index: 1;
+            top: 10px;
+            left: 10px;
+            border-radius: 4px;
+            width: 350px;
+            border: 1px solid rgba(0, 0, 0, 0.5);
+            font-family: 'Helvetica Neue', sans-serif;
+        }
+
+        #menu a {
+            font-size: 16px;
+            color: rgba(0, 0, 0, 0.5);
+            display: block;
+            margin: 0;
+            padding: 0;
+            padding: 10px;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.40);
+            text-align: center;
+        }
+
+        #menu a:last-child {
+            border: none;
+        }
+
+        #menu a:hover {
+            background-color: #f8f8f8;
+            color: #404040;
+        }
+
+        #menu a.active {
+            background-color: rgba(25, 80, 93, 0.90);
+            color: #ffffff;
+        }
+
+        #menu a.active:hover {
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+
+        body {
+            color: #404040;
+            font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', Sans-serif;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            /* border-left: 1px solid #fff; */
+            position: relative;
+            left: 33.3333%;
+            width: 66.6666%;
+            top: 0;bottom: 0;
+        }
+
+        .mapboxgl-popup {
+            max-width: 1200px;
+            font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        }
+
+        .pad2 {
+            padding: 20px;
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+        }
+
+        .listings {
+            height: 100%;
+            overflow: auto;
+            padding-bottom: 60px;
+        }
+
+        .geocoder {
+            position: relative;
+            z-index: 1;
+            left: 66.6666%;
+            width: 150%;
+            margin-left: -33.3333%;
+            top: 40px;
+        }
+
+        .mapboxgl-ctrl-geocoder {
+            min-width: 125%;
+        }
+
+        .sidebar {
+            position: absolute;
+            width: 33.3333%;
+            height: 100%;
+            top: 0;
+            background: rgba(0, 0, 0, 0.3);
+            left: 0;
+            overflow: hidden;
+
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <script
+        src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.4.1/mapbox-gl-geocoder.min.js'></script>
+    <link rel='stylesheet'
+        href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.4.1/mapbox-gl-geocoder.css'
+        type='text/css' />
+    
+    <div
+    <div class='sidebar pad2' </div>
+    <nav id="menu" </nav>
+    </div>
+    <div id='map' class = 'map' style='width: 100%; height: 850px;'</div>
+    <div id='geocoder' class='geocoder'</div>
+
+    <script>
+        // var bounds = [
+        //     [-178, 0], // Southwest coordinates
+        //     [-0, 85]  // Northeast coordinates
+        //     ];
+
+        // var filterGroup = document.getElementById('filter-group');
+        mapboxgl.accessToken = 'pk.eyJ1IjoidGhpcmRodW1hbiIsImEiOiJjamljYXUyeTcwNHBlM3hxb3dtZWtiMmFpIn0.5BIldxj0ATxmuJBaknExeQ';
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/thirdhuman/cjztxowb41bbo1cu8x0qk96g3',
+            center: [-93.85, 37.45],
+            zoom: 3.5
+            // maxBounds: bounds // Sets bounds as max
+        });
+
+        // Add zoom and rotation controls to the map.
+        map.addControl(new mapboxgl.NavigationControl(),'bottom-right');
+        // map.addControl(nav, 'top-left');
+
+        var toggleableLayerIds = ['Opportunity Zones', 'Rest of Country'];
+
+        map.on('load', function () {
+            
+            // map.addLayer({
+            //     "id": "state-fills",
+            //     "type": "fill",
+            //     "source": "Rest of Country",
+            //     "layout": {'visibility': 'visible'},
+            //     "paint": {
+            //     "fill-color": "#627BC1",
+            //     "fill-opacity": ["case",
+            //     ["boolean", ["feature-state", "hover"], false],
+            //     1, 0.5
+            //         ]
+            //         }
+            //     });
+
+            // map.addLayer({
+            //         "id": "tract-borders",
+            //         "type": "fill",
+            //         "source": "tract-borders",
+            //         "source-layer": "tract-borders",
+            //         "layout": {'visibility': 'visible'},
+            //         "paint": {
+            //         "fill-outline-color": "#c20c3f",
+            //         "fill-opacity": 0.75
+            //         },
+            //         "filter": ["in", "GEOID", ""]
+            //         }, 'settlement-label'); // Place polygon under these labels.
+
+
+            // var hoveredStateId =  null;
+
+            // location of the click, with description HTML from its properties.
+            map.on('click', 'Rest of Country', function (e) {
+                new mapboxgl.Popup()
+                    .setLngLat(e.lngLat)
+                    .setHTML(
+                    "<strong>Tract Number: </strong>" + e.features[0].properties.GEOID
+                    + "<br/ >" + "<strong>Tract Type: </strong>" + e.features[0].properties.Final_Cluster 
+                    + "<br/ >" + "<strong>Opportunity Zone Status: </strong>" + e.features[0].properties.OZ 
+                    + "<br/ >" + "<strong>Index_Placeholder: </strong>" + e.features[0].properties.ind1
+                    )
+                    .addTo(map);
+            });
+
+            map.on('click', 'Opportunity Zones', function (e) {
+                // map.setPaintProperty('Opportunity Zones','fill-outline-color', '#140842');
+                new mapboxgl.Popup()
+                    .setLngLat(e.lngLat)
+                    .setHTML(
+                        "<strong>Tract Number: </strong>" + e.features[0].properties.GEOID
+                    + "<br/ >" + "<strong>Tract Type: </strong>" + e.features[0].properties.Final_Cluster 
+                    + "<br/ >" + "<strong>Opportunity Zone Status: </strong>" + e.features[0].properties.OZ 
+                    + "<br/ >" + "<strong>Index_Placeholder: </strong>" + e.features[0].properties.ind1
+                    )
+                    .addTo(map);
+            });
+
+            // Change the cursor to a pointer when the mouse is over the states layer.
+            map.on('mouseenter', 'Rest of Country', function () {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            // Change it back to a pointer when it leaves.
+            map.on('mouseleave', 'Rest of Country', function () {
+                map.getCanvas().style.cursor = '';
+            });
+
+            // Change the cursor to a pointer when the mouse is over the states layer.
+            map.on('mouseenter', 'Opportunity Zones', function () {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            // Change it back to a pointer when it leaves.
+            map.on('mouseleave', 'Opportunity Zones', function () {
+                map.getCanvas().style.cursor = '';
+            });
+
+            for (var i = 0; i < toggleableLayerIds.length; i++) {
+                var id = toggleableLayerIds[i];
+
+                var link = document.createElement('a');
+                link.href = '#';
+                link.className = 'active';
+                link.textContent = id;
+
+                link.onclick = function (e) {
+                    var clickedLayer = this.textContent;
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    var visibility = map.getLayoutProperty(clickedLayer, 'visibility');
+
+                    if (visibility === 'visible') {
+                        map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+                        this.className = '';
+                    } else {
+                        this.className = 'active';
+                        map.setLayoutProperty(clickedLayer, 'visibility', 'visible');
+                    }
+                };
+                var layers = document.getElementById('menu');
+                layers.appendChild(link);
+            }
+            
+            // var PBP_Features = map.queryRenderedFeatures({ layers: ['Opportunity Zones'] });
+            // var ROC_Features = map.queryRenderedFeatures({ layers:  ['Rest of Country'] });
+            // var OZ_Features = PBP_Features.concat(ROC_Features)
+
+            
+            // When the user moves their mouse over the state-fill layer, we'll update the
+            // feature state for the feature under the mouse.
+            // map.on("mousemove", "tract-borders", function(e) {
+            //     if (e.features.length > 0) {
+            //         if (hoveredStateId) {
+            //     map.setFeatureState({source: 'tract-borders', id: hoveredStateId}, { hover: false});
+            //     }
+            //     hoveredStateId = e.features[0].id;
+            //     map.setFeatureState({source: 'tract-borders', id: hoveredStateId}, { hover: true});
+            //     }
+            // });
+            
+            // // When the mouse leaves the state-fill layer, update the feature state of the
+            // // previously hovered feature.
+            // map.on("mouseleave", "tract-borders", function() {
+            // if (hoveredStateId) {
+            // map.setFeatureState({source: 'tract-borders', id: hoveredStateId}, { hover: false});
+            // }
+            // hoveredStateId =  null;
+            // });
+
+
+            // map.on('mousemove', function (e) {
+            //     // query the map for the under the mouse
+            //     map.queryRenderedFeatures(e.point, { radius: 1, includeGeometry: true }, function (err, features) {
+            //         if (err) throw err
+            //         console.log(e.point, features)
+            //         var ids = features.map(function (feat) { return feat.properties.GEOID })
+
+            //         // set the filter on the hover style layer to only select the features
+            //         // currently under the mouse
+            //         map.setFilter('tract-borders', [ 'all',
+            //         [ 'in', 'GEOID' ].concat(ids)
+            //         ])
+            //     })
+            // })
+
+
+    //         map.on('click', function(e) {
+    //             // set bbox as 5px reactangle area around clicked point
+    //             var bbox = [[e.point.x, e.point.y], [e.point.x, e.point.y]];
+    //             var features = map.queryRenderedFeatures(bbox, { layers: ['tract-borders'] });
+    //             // Run through the selected features and set a filter
+    //             // to match features with unique FIPS codes to activate
+    //             // the `counties-highlighted` layer.
+    //             var filter = features.reduce(function(memo, feature) {
+    //             memo.push(feature.properties.GEOID);
+    //             return memo;
+    //             }, ['in', 'GEOID']);
+                
+    //             map.setFilter("tract-borders", filter);
+    //             });
+
+
+    });
+
+    function forwardGeocoder(query) {
+        var PBP_Features = map.queryRenderedFeatures({ layers: ['Opportunity Zones'] });
+        var ROC_Features = map.queryRenderedFeatures({ layers:  ['Rest of Country'] });
+        var OZ_Features = PBP_Features.concat(ROC_Features)
+        console.log(OZ_Features)
+        var matchingFeatures = [];
+            for (var i = 0; i < OZ_Features.length; i++) {
+                var feature = OZ_Features[i];
+                if (feature.properties.GEOID.toLowerCase().search(query.toLowerCase()) !== -1) {
+                feature['place_name'] = 'Tract #: ' + feature.properties.GEOID;
+                feature['center'] = [feature.properties.lng, feature.properties.lat];
+                feature['place_type'] = ['Tract'];
+                matchingFeatures.push(feature);
+                }
+        }
+    return matchingFeatures;
+    }
+
+    var geocoder = new MapboxGeocoder({
+                    accessToken: mapboxgl.accessToken,
+                    localGeocoder: forwardGeocoder,
+                    zoom: 14,
+                    placeholder: "Search e.g. 02105000300",
+                    mapboxgl: mapboxgl
+    });
+
+    document.getElementById('geocoder').appendChild(geocoder.onAdd(map));
+
+</script>
+
+</body>
+
+</html>
