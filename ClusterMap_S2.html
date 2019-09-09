@@ -120,25 +120,16 @@
             // maxBounds: bounds // Sets bounds as max
         });
 
+        var hoveredTractId = null;
         var hoveredStateId = null;
         var clickStateId = null;
+        var toggleableLayerIds = ['tract-shapes', 'tract-colors'];
 
         map.on('load', function () {
             map.addControl(new mapboxgl.NavigationControl({
                 showCompass: false
             }), 'bottom-right');
 
-            map.on('click', 'tract-shapes', function (e) {
-                new mapboxgl.Popup()
-                    .setLngLat(e.lngLat)
-                    .setHTML(
-                        "<strong>Tract Number: </strong>" + e.features[0].properties.GEOID
-                        + "<br />" + "<strong>Tract Type: </strong>" + e.features[0].properties.Final_Cluster
-                        + "<br />" + "<strong>Opportunity Zone Status: </strong>" + e.features[0].properties.OZ
-                        + "<br />" + "<strong>Index_Placeholder: </strong>" + e.features[0].properties.ind1
-                    )
-                    .addTo(map);
-            });
 
             // map.on('click', 'state-shapes', function (e) {
             //     console.log(e.features[0].geometry.coordinates);
@@ -189,6 +180,31 @@
                     console.log(hoveredStateId)
                 }
             });
+
+
+            map.on("mousemove", "tract-shapes", function (e) {
+                console.log(e.features[0].id)
+                // console.log(e.features.length)
+                console.log(hoveredTractId)
+                if (e.features.length > 0) {
+                    if (hoveredStateId) {
+                        map.setFeatureState({
+                            source: 'composite',
+                            sourceLayer: "Cluster_final_ab",
+                            id: hoveredStateId
+                        }, { hover: false });
+                    }
+                    hoveredTractId = e.features[0].id;
+                    console.log(hoveredTractId)
+                    map.setFeatureState({
+                        source: 'composite',
+                        sourceLayer: "Cluster_final_ab",
+                        id: hoveredTractId
+                    }, { hover: true });
+                    console.log(hoveredTractId)
+                }
+            });
+
 
             map.on("click", "state-lines", function (e) {
                 console.log(e.features[0].id)
@@ -251,14 +267,59 @@
                 popup.remove();
             });
 
+
+                
+            for (var i = 0; i < toggleableLayerIds.length; i++) {
+                    var id = toggleableLayerIds[i];
+
+                    var link = document.createElement('a');
+                    link.href = '#';
+                    link.className = 'active';
+                    link.textContent = id;
+
+                    link.onclick = function (e) {
+                        var clickedLayer = this.textContent;
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        var visibility = map.getLayoutProperty(clickedLayer, 'visibility');
+
+                        if (visibility === 'visible') {
+                            map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+                            this.className = '';
+                        } else {
+                            this.className = 'active';
+                            map.setLayoutProperty(clickedLayer, 'visibility', 'visible');
+                        }
+                    };
+                    var layers = document.getElementById('info');
+                    layers.appendChild(link);
+                }
+
+            map.on('click', 'tract-shapes', function (e) {
+                new mapboxgl.Popup()
+                    .setLngLat(e.lngLat)
+                    .setHTML(
+                        "<strong>Tract Number: </strong>" + e.features[0].properties.GEOID
+                        + "<br />" + "<strong>Tract Type: </strong>" + e.features[0].properties.Final_Cluster
+                        + "<br />" + "<strong>Opportunity Zone Status: </strong>" + e.features[0].properties.OZ
+                        + "<br />" + "<strong>Index_Placeholder: </strong>" + e.features[0].properties.ind1
+                    )
+                    .addTo(map);
+            });
+
             map.on('mousemove', function (e) {
                 document.getElementById('info').innerHTML =
                     // e.point is the x, y coordinates of the mousemove event relative
                     // to the top-left corner of the map
                     JSON.stringify(e.point) + '<br />' +
+                    layers.appendChild(link) + '<br />' +
+
                     // e.lngLat is the longitude, latitude geographical position of the event
                     JSON.stringify(e.lngLat.wrap());
             });
+
+
             map.on('click', function (e) {
                 console.log(document.getElementById('info').innerHTML)
             });
