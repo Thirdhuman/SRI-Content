@@ -21,10 +21,11 @@
         #map {
             /* border-left: 1px solid #fff; */
             position: relative;
-            /* left: 33.3333%;
-            width: 66.6666%; */
+            left: 5%;
+            /* width: 66.6666%; */
             top: 0;
             bottom: 0;
+            /* text-align:center; */
         }
 
         .mapboxgl-popup {
@@ -44,11 +45,6 @@
         }
 
 
-        .listings {
-            height: 100%;
-            overflow: auto;
-            padding-bottom: 60px;
-        }
 
         .sidebar {
             position: relative;
@@ -60,11 +56,33 @@
             overflow: hidden;
 
         }
-    </style>
-</head>
 
-<body>
-    <style>
+        .radar-chart .area {
+            fill-opacity: 0.7;
+        }
+
+        .radar-chart.focus .area {
+            fill-opacity: 0.3;
+        }
+
+        .radar-chart.focus .area.focused {
+            fill-opacity: 0.9;
+        }
+
+        .area.tract-data,
+        .tract-data .circle {
+            fill: rgba(25, 80, 93, 0.90);
+            stroke: none;
+        }
+
+        .flex-parent {
+            display: flex;
+        }
+
+        .flex-child {
+            flex: 1;
+        }
+
         #Reset {
             display: block;
             position: relative;
@@ -79,9 +97,42 @@
             color: rgb(12, 12, 12);
             background: #fffefe;
         }
-    </style>
-    <style type='text/css'>
-        #info {
+
+        #coordinate_info {
+            display: block;
+            position: relative;
+            margin: 0px auto;
+            width: 50%;
+            padding: 10px;
+            border: none;
+            border-radius: 3px;
+            font-size: 12px;
+            text-align: center;
+            color: #222;
+            background: #fff;
+        }
+
+        #radar {
+            padding: 5px;
+            position: relative;
+            text-align: left;
+        }
+
+        #tract_info {
+            display: block;
+            position: relative;
+            margin: 0px auto;
+            width: 50%;
+            padding: 10px;
+            border: none;
+            border-radius: 3px;
+            font-size: 12px;
+            text-align: left;
+            color: #222;
+            background: #fff;
+        }
+
+        #Mosaic {
             display: block;
             position: relative;
             margin: 0px auto;
@@ -96,17 +147,39 @@
         }
     </style>
 
+</head>
 
-    <div id='map' class='map' style='width: 100%; height: 850px;'></div>
+<body>
+
+
     <button id='Reset'> <strong>Reset Map<strong></button>
-    <pre id='info'></pre>
+    <pre id='Mosaic'></pre>
+    <div id='map' class='map' style='width: 90%; height: 650px;'></div>
+    <div class='parent flex-parent'>
+        <pre id='radar' class='child flex-child'></pre>
+        <pre id='tract_info' class='child flex-child'></pre>
+        <!-- <div class='child inline-block-child'>A</div>
+            <div class='child inline-block-child'>B</div> -->
+    </div>
 
+    <pre id='coordinate_info'></pre>
+
+    <script src="https://d3js.org/d3.v3.js"></script>
+    <script src="https://rawgit.com/tpreusse/radar-chart-d3/master/src/radar-chart.js"></script>
+
+
+    <!-- <script>
+    </script> -->
 
     <script>
-        // var bounds = [
-        // [-120, -20], // Southwest coordinates
-        // [45, -80] // Northeast coordinates
-        // ];
+        RadarChart.defaultConfig.color = function () { };
+        RadarChart.defaultConfig.radius = 3;
+        RadarChart.defaultConfig.w = 250;
+        RadarChart.defaultConfig.h = 250;
+        var bounds = [
+            [-32.5, -14.5], // Southwest coordinates
+            [32.5, 13] // Northeast coordinates
+        ];
 
         // var filterGroup = document.getElementById('filter-group');
         mapboxgl.accessToken =
@@ -117,28 +190,22 @@
             style: 'mapbox://styles/thirdhuman/ck04kj0h30l2o1crz23guljy8',
             // center: [-93.85, 37.45],
             // zoom: 4.31
-            // maxBounds: bounds // Sets bounds as max
+            maxBounds: bounds // Sets bounds as max
         });
 
+
+        var toggleableLayerIds = ['All Tracts'];
         var hoveredTractId = null;
         var hoveredStateId = null;
         var clickStateId = null;
-        var toggleableLayerIds = ['tract-shapes', 'tract-colors'];
+        var lastFeature = null
+        // var svg = null;
 
         map.on('load', function () {
             map.addControl(new mapboxgl.NavigationControl({
                 showCompass: false
             }), 'bottom-right');
 
-
-            // map.on('click', 'state-shapes', function (e) {
-            //     console.log(e.features[0].geometry.coordinates);
-            //     var polys = e.features[0].geometry.coordinates;
-            //     // console.log(r);
-            //     console.log(polys);
-            //     // console.log(p);
-            //     // map.flyTo({ center: p });
-            // });
 
             // Change the cursor to a pointer when the it enters a feature in the 'symbols' layer.
             map.on('mouseenter', 'state-shapes', function () {
@@ -150,18 +217,17 @@
                 map.getCanvas().style.cursor = '';
             });
 
-            // console.log(test1)
-            // var test2 = map.queryRenderedFeatures({ layers: ['state-shapes'] });
-            // console.log(test2[0])
-            // var test3 = map.queryRenderedFeatures({ layers: ['state-fills'] });
-            // console.log(test3)
+            map.on('mouseenter', 'tract-shapes', function () {
+                map.getCanvas().style.cursor = 'pointer';
+            });
 
-            // console.log(test3.id)
+            // Change it back to a pointer when it leaves.
+            map.on('mouseleave', 'tract-shapes', function () {
+                map.getCanvas().style.cursor = '';
+            });
+
 
             map.on("mousemove", "state-shapes", function (e) {
-                console.log(e.features[0].id)
-                // console.log(e.features.length)
-                console.log(hoveredStateId)
                 if (e.features.length > 0) {
                     if (hoveredStateId) {
                         map.setFeatureState({
@@ -171,65 +237,13 @@
                         }, { hover: false });
                     }
                     hoveredStateId = e.features[0].id;
-                    console.log(hoveredStateId)
                     map.setFeatureState({
                         source: 'composite',
                         sourceLayer: "state_shapes_ab",
                         id: hoveredStateId
                     }, { hover: true });
-                    console.log(hoveredStateId)
                 }
             });
-
-
-            map.on("mousemove", "tract-shapes", function (e) {
-                console.log(e.features[0].id)
-                // console.log(e.features.length)
-                console.log(hoveredTractId)
-                if (e.features.length > 0) {
-                    if (hoveredStateId) {
-                        map.setFeatureState({
-                            source: 'composite',
-                            sourceLayer: "Cluster_final_ab",
-                            id: hoveredStateId
-                        }, { hover: false });
-                    }
-                    hoveredTractId = e.features[0].id;
-                    console.log(hoveredTractId)
-                    map.setFeatureState({
-                        source: 'composite',
-                        sourceLayer: "Cluster_final_ab",
-                        id: hoveredTractId
-                    }, { hover: true });
-                    console.log(hoveredTractId)
-                }
-            });
-
-
-            map.on("click", "state-lines", function (e) {
-                console.log(e.features[0].id)
-                // console.log(e.features.length)
-                console.log(clickStateId)
-                if (e.features.length > 0) {
-                    if (clickStateId) {
-                        map.setFeatureState({
-                            source: 'composite',
-                            sourceLayer: "state_shapes_ab",
-                            id: clickStateId
-                        }, { hover: false });
-                    }
-                    clickStateId = e.features[0].id;
-                    console.log(clickStateId)
-                    map.setFeatureState({
-                        source: 'composite',
-                        sourceLayer: "state_shapes_ab",
-                        id: clickStateId
-                    }, { hover: true });
-                    console.log(clickStateId)
-                }
-            });
-
-
 
             // When the mouse leaves the state-fill layer, update the feature state of the
             // previously hovered feature.
@@ -244,57 +258,161 @@
                 hoveredStateId = null;
             });
 
-            map.scrollZoom.disable();
 
-            document.getElementById('Reset').addEventListener('click', function () {
-                map.flyTo({
-                    center: [0.7342787982274785, 0.6163695229006692]
-                    , zoom: 3.8
-                    , speed: 1
-                });
-                popup.remove();
+            map.on("mousemove", "tract-shapes", function (e) {
+                var f = map.queryRenderedFeatures(e.point)[0];
+                if (f.id !== lastFeature) {
+                    // d3.select("svg").remove();
+                    lastFeature = f.id;
+
+                    if (e.features.length > 0) {
+                        if (hoveredTractId) {
+                            map.setFeatureState({
+                                source: 'composite',
+                                sourceLayer: "Cluster_final_ab",
+                                id: hoveredTractId
+                            }, { hover: false });
+                        }
+                        hoveredTractId = e.features[0].id;
+                        map.setFeatureState({
+                            source: 'composite',
+                            sourceLayer: "Cluster_final_ab",
+                            id: hoveredTractId
+                        }, { hover: true });
+                    }
+
+                    var tract_dat = [
+                        {
+                            className: 'tract-data', // optional can be used for styling
+                            axes: [
+                                { axis: "ind1", value: e.features[0].properties.ind1 },
+                                { axis: "ind2", value: e.features[0].properties.ind2 },
+                                { axis: "ind3", value: e.features[0].properties.ind3 },
+                                { axis: "ind4", value: e.features[0].properties.ind4 },
+                                { axis: "ind5", value: e.features[0].properties.ind5 }
+                            ]
+                        }
+                    ];
+
+                    var chart = RadarChart.chart();
+                    var cfg = chart.config(); // retrieve default config
+                    d3.select("#radar").select("svg").remove();
+                    var svg = d3.select('#radar').append('svg')
+                        .attr('width', cfg.w + cfg.w + 50)
+                        .attr('height', cfg.h + cfg.h / 4);
+                    svg.append('g').classed('single', 1).datum(tract_dat).call(chart);
+                    render();
+
+                }
+                document.getElementById('tract_info').innerHTML =
+                    "<strong>Tract Number: </strong>" + e.features[0].properties.GEOID
+                    + "<br />" + "<strong>Tract Type: </strong>" + e.features[0].properties.Final_Cluster
+                    + "<br />" + "<strong>Opportunity Zone Status: </strong>" + e.features[0].properties.OZ
+                    + "<br />" + "<strong>Low-Income Community: </strong>" + e.features[0].properties.LIC
+                    + "<br />" + "<strong>Index_Placeholder: </strong>" + e.features[0].properties.ind1
+
 
             });
 
+
+            map.on("mousemove", "tract-shapes", function (e) {
+                var f = map.queryRenderedFeatures(e.point)[0];
+                if (f.id !== lastFeature) {
+                    lastFeature = f.id;
+                    if (hoveredTractId) {
+                        map.setFeatureState({
+                            source: 'composite',
+                            sourceLayer: "Cluster_final_ab",
+                            id: hoveredTractId
+                        }, { hover: false });
+                    }
+                    hoveredTractId = null;
+                    d3.select("svg").remove();
+                }
+            });
+
+            /// Highlight state lines
+            map.on("click", "state-shapes", function (e) {
+                if (e.features.length > 0) {
+                    if (clickStateId) {
+                        map.setFeatureState({
+                            source: 'composite',
+                            sourceLayer: "state_shapes_ab",
+                            id: clickStateId
+                        }, { click: false });
+                    }
+                    clickStateId = e.features[0].id;
+                    map.setFeatureState({
+                        source: 'composite',
+                        sourceLayer: "state_shapes_ab",
+                        id: clickStateId
+                    }, { click: true });
+                }
+            });
+
+            document.getElementById('Reset').addEventListener('click', function () {
+                map.flyTo({
+                    center: [0, 0]
+                    , zoom: 3.8
+                    , speed: 1
+                });
+                map.setFeatureState({
+                    source: 'composite',
+                    sourceLayer: "state_shapes_ab",
+                    id: clickStateId
+                }, { click: false });
+                clickStateId = null;
+                popup.remove();
+            });
 
             map.on('click', 'state-shapes', function (e) {
                 coords = [e.features[0].properties.lng, e.features[0].properties.lat]
                 map.flyTo({
                     center: coords
-                    , zoom: 6.75
+                    , zoom: 6
                     , speed: 0.45
                 });
                 popup.remove();
             });
 
 
-                
             for (var i = 0; i < toggleableLayerIds.length; i++) {
-                    var id = toggleableLayerIds[i];
+                var id = toggleableLayerIds[i];
 
-                    var link = document.createElement('a');
-                    link.href = '#';
-                    link.className = 'active';
-                    link.textContent = id;
+                var link = document.createElement('a');
+                link.href = '#';
+                link.className = 'active';
+                link.textContent = id;
 
-                    link.onclick = function (e) {
-                        var clickedLayer = this.textContent;
-                        e.preventDefault();
-                        e.stopPropagation();
+                link.onclick = function (e) {
+                    var clickedLayer = this.textContent;
+                    e.preventDefault();
+                    e.stopPropagation();
 
-                        var visibility = map.getLayoutProperty(clickedLayer, 'visibility');
+                    var visibility = map.getLayoutProperty(clickedLayer, 'visibility');
 
-                        if (visibility === 'visible') {
-                            map.setLayoutProperty(clickedLayer, 'visibility', 'none');
-                            this.className = '';
-                        } else {
-                            this.className = 'active';
-                            map.setLayoutProperty(clickedLayer, 'visibility', 'visible');
-                        }
-                    };
-                    var layers = document.getElementById('info');
-                    layers.appendChild(link);
-                }
+                    if (visibility === 'visible') {
+                        map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+                        this.className = '';
+                    } else {
+                        this.className = 'active';
+                        map.setLayoutProperty(clickedLayer, 'visibility', 'visible');
+                    }
+                };
+                var layers = document.getElementById('Mosaic');
+                layers.appendChild(link);
+            }
+
+
+            map.on('mousemove', function (e) {
+                document.getElementById('coordinate_info').innerHTML =
+                    // e.point is the x, y coordinates of the mousemove event relative
+                    // to the top-left corner of the map
+                    JSON.stringify(e.point) + '<br />' +
+                    // e.lngLat is the longitude, latitude geographical position of the event
+                    JSON.stringify(e.lngLat.wrap());
+            });
+
 
             map.on('click', 'tract-shapes', function (e) {
                 new mapboxgl.Popup()
@@ -308,26 +426,15 @@
                     .addTo(map);
             });
 
-            map.on('mousemove', function (e) {
-                document.getElementById('info').innerHTML =
-                    // e.point is the x, y coordinates of the mousemove event relative
-                    // to the top-left corner of the map
-                    JSON.stringify(e.point) + '<br />' +
-                    layers.appendChild(link) + '<br />' +
-
-                    // e.lngLat is the longitude, latitude geographical position of the event
-                    JSON.stringify(e.lngLat.wrap());
-            });
-
-
             map.on('click', function (e) {
-                console.log(document.getElementById('info').innerHTML)
+               console.log(JSON.stringify(e.lngLat.wrap()))
             });
+
+            map.scrollZoom.disable();
+
         });
 
-
     </script>
-
 
 </body>
 
